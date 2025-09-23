@@ -1,8 +1,10 @@
 const Request = require("../models/requests");
 const Blockchain = require("../models/blockchain");
-const { v4: uuidv4 } = require("uuid"); // for generating unique transaction IDs
+const User = require("../models/users");
+const Web3Service = require("../blockchain/Web3Service");
+const { v4: uuidv4 } = require("uuid");
 
-// Make a request
+// Make a request with blockchain integration
 const MakeRequest = async (req, res) => {
   try {
     const {
@@ -15,8 +17,9 @@ const MakeRequest = async (req, res) => {
       department,
     } = req.body;
 
-    const blockchain_address = uuidv4(); // generate unique blockchain id
+    const blockchain_address = uuidv4();
 
+    // Create request in database
     const request = await Request.create({
       user_id,
       stock_id,
@@ -28,82 +31,132 @@ const MakeRequest = async (req, res) => {
       blockchain_address,
     });
 
-    res.status(201).json({ message: "Request created successfully", request });
+    // Create blockchain transaction
+    const user = await User.findByPk(user_id);
+    if (user && user.blockchain_address) {
+      const privateKey = Web3Service.decryptPrivateKey(user.encrypted_private_key);
+      
+      if (privateKey) {
+        const blockchainResult = await Web3Service.createRequestOnChain(
+          item_name,
+          quantity,
+          priority || "LOW",
+          reason || "",
+          user.blockchain_address,
+          privateKey
+        );
+
+        if (blockchainResult.success) {
+          // Record successful blockchain transaction
+          const lastBlock = await Blockchain.findOne({
+            order: [["block_number", "DESC"]],
+          });
+          const nextBlockNumber = lastBlock ? lastBlock.block_number + 1 : 1;
+
+          await Blockchain.create({
+            transaction_id: blockchainResult.transactionHash,
+            request_id: request.id,
+            block_number: nextBlockNumber,
+            status: "PENDING",
+            user_id: user_id,
+            stock_id: stock_id,
+          });
+        }
+      }
+    }
+
+    res.status(201).json({ 
+      message: "Request created successfully", 
+      request,
+      blockchain_success: !!blockchainResult?.success
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error in MakeRequest" });
   }
 };
 
-module.exports = { MakeRequest };
-
-// Manage requests (could be all requests for a specific user)
-const ManageRequest = async (req, res) => {
-  try {
-    const requests = await Request.findAll({ where: { user_id: req.user.id } });
-    res.status(200).json({ requests });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error in ManageRequest" });
-  }
-};
-
-// Get all requests
-const GetAllRequests = async (req, res) => {
-  try {
-    const requests = await Request.findAll();
-    res.status(200).json({ requests });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error in GetAllRequests" });
-  }
-};
-
-// Get a single request
-const GetSingleRequest = async (req, res) => {
-  try {
-    const request = await Request.findByPk(req.params.id);
-    if (!request) return res.status(404).json({ error: "Request not found" });
-    res.status(200).json({ request });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error in GetSingleRequest" });
-  }
-};
-
-// Edit a request
+// Edit a request with blockchain approval
 const EditRequest = async (req, res) => {
   try {
-    // 1. Find the request by ID
     const request = await Request.findByPk(req.params.id);
     if (!request) return res.status(404).json({ error: "Request not found" });
 
-    const { status } = req.body;
-    if (!status)
+    const { status, approval_reason } = req.body;
+    if (!status) {
       return res.status(400).json({ error: "New status must be provided" });
+    }
 
-    // 2. Update request status
+    // Update request status
     await request.update({ status });
 
-    // 3. Determine next block_number
-    const lastBlock = await Blockchain.findOne({
-      order: [["block_number", "DESC"]],
-    });
-    const nextBlockNumber = lastBlock ? lastBlock.block_number + 1 : 1;
+    // Get approver user
+    const approver = await User.findByPk(req.user.id);
+    
+    // Blockchain approval transaction
+    if (approver && approver.blockchain_address && 
+        (status === "APPROVED" || status === "REJECTED")) {
+      
+      const privateKey = Web3Service.decryptPrivateKey(approver.encrypted_private_key);
+      
+      if (privateKey) {
+        const blockchainResult = await Web3Service.approveRequestOnChain(
+          request.id,
+          status === "APPROVED",
+          approval_reason || "No reason provided",
+          approver.blockchain_address,
+          privateKey
+        );
 
-    // 4. Record blockchain transaction
-    const transaction = await Blockchain.create({
-      transaction_id: uuidv4(),
-      request_id: request.id,
-      block_number: nextBlockNumber,
-      status,
-      user_id: request.user_id,
-      stock_id: request.stock_id,
-    });
+        if (blockchainResult.success) {
+          // Record blockchain transaction
+          const lastBlock = await Blockchain.findOne({
+            order: [["block_number", "DESC"]],
+          });
+          const nextBlockNumber = lastBlock ? lastBlock.block_number + 1 : 1;
 
-    // 5. Return response
+          const transaction = await Blockchain.create({
+            transaction_id: blockchainResult.transactionHash,
+            request_id: request.id,
+            block_number: nextBlockNumber,
+            status: status,
+            user_id: request.user_id,
+            stock_id: request.stock_id,
+          });
+
+          return res.status(200).json({
+            message: "Request status updated and blockchain transaction recorded",
+            request: {
+              id: request.id,
+              user_id: request.user_id,
+              stock_id: request.stock_id,
+              item_name: request.item_name,
+              quantity: request.quantity,
+              priority: request.priority,
+              reason: request.reason,
+              status: request.status,
+              blockchain_address: request.blockchain_address,
+              created_at: request.created_at,
+              updated_at: request.updated_at,
+            },
+            transaction: {
+              id: transaction.id,
+              transaction_id: transaction.transaction_id,
+              block_number: transaction.block_number,
+              status: transaction.status,
+              user_id: transaction.user_id,
+              stock_id: transaction.stock_id,
+              created_at: transaction.created_at,
+              updated_at: transaction.updated_at,
+            },
+          });
+        }
+      }
+    }
+
+    // Fallback response if blockchain transaction fails or not applicable
     res.status(200).json({
-      message: "Request status updated and transaction recorded",
+      message: "Request status updated",
       request: {
         id: request.id,
         user_id: request.user_id,
@@ -117,24 +170,49 @@ const EditRequest = async (req, res) => {
         created_at: request.created_at,
         updated_at: request.updated_at,
       },
-      transaction: {
-        id: transaction.id,
-        transaction_id: transaction.transaction_id,
-        block_number: transaction.block_number,
-        status: transaction.status,
-        user_id: transaction.user_id,
-        stock_id: transaction.stock_id,
-        created_at: transaction.created_at,
-        updated_at: transaction.updated_at,
-      },
     });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error in EditRequest" });
   }
 };
 
-// Delete a request
+// Get all requests (unchanged)
+const ManageRequest = async (req, res) => {
+  try {
+    const requests = await Request.findAll({ where: { user_id: req.user.id } });
+    res.status(200).json({ requests });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error in ManageRequest" });
+  }
+};
+
+// Get all requests (unchanged)
+const GetAllRequests = async (req, res) => {
+  try {
+    const requests = await Request.findAll();
+    res.status(200).json({ requests });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error in GetAllRequests" });
+  }
+};
+
+// Get a single request (unchanged)
+const GetSingleRequest = async (req, res) => {
+  try {
+    const request = await Request.findByPk(req.params.id);
+    if (!request) return res.status(404).json({ error: "Request not found" });
+    res.status(200).json({ request });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error in GetSingleRequest" });
+  }
+};
+
+// Delete a request (unchanged)
 const DeleteRequest = async (req, res) => {
   try {
     const request = await Request.findByPk(req.params.id);
