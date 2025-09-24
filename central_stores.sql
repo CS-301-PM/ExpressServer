@@ -21,6 +21,7 @@ CREATE TABLE
     username VARCHAR(50),
     department VARCHAR(100) DEFAULT '',
     blockchain_address VARCHAR(255),
+    encrypted_private_key TEXT,
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

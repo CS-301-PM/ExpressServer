@@ -1,6 +1,7 @@
 const User = require("../models/users");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const Web3Service = require("../blockchain/Web3Service");
 
 // Middleware to extract user from JWT token
 const authenticateToken = async (req, res, next) => {
@@ -42,6 +43,10 @@ const SignUp = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const account = await Web3Service.generateBlockchainAccount();
+    const encryptedPrivateKey = Web3Service.encryptPrivateKey(
+      account.privateKey
+    );
 
     const user = await User.create({
       username,
@@ -51,7 +56,8 @@ const SignUp = async (req, res) => {
       password_hash: hashedPassword,
       role: role || "ADMIN",
       department: department || "",
-      blockchain_address: "",
+      blockchain_address: account.address,
+      encrypted_private_key: encryptedPrivateKey,
     });
 
     res.status(201).json({

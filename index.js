@@ -692,78 +692,78 @@ app.use(departmentRoutes);
 app.use(blockchainRoutes);
 
 // Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    database: "Connected",
-    blockchain: Web3Service.isConnected() ? "Connected" : "Not Connected",
-    contract: process.env.CONTRACT_ADDRESS || "Not Deployed",
-  });
-});
+// app.get("/api/health", (req, res) => {
+//   res.json({
+//     status: "OK",
+//     timestamp: new Date().toISOString(),
+//     database: "Connected",
+//     blockchain: Web3Service.isConnected() ? "Connected" : "Not Connected",
+//     contract: process.env.CONTRACT_ADDRESS || "Not Deployed",
+//   });
+// });
 
 // Test database connection endpoint
-app.get("/api/test-db", async (req, res) => {
-  try {
-    await sequelize.authenticate();
-    res.json({
-      status: "Database connected successfully",
-      database: process.env.DB_NAME,
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: "Database connection failed",
-      details: error.message,
-    });
-  }
-});
+// app.get("/api/test-db", async (req, res) => {
+//   try {
+//     await sequelize.authenticate();
+//     res.json({
+//       status: "Database connected successfully",
+//       database: process.env.DB_NAME,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       error: "Database connection failed",
+//       details: error.message,
+//     });
+//   }
+// });
 
 // Test blockchain connection endpoint
-app.get("/api/test-blockchain", async (req, res) => {
-  try {
-    const isConnected = Web3Service.isConnected();
-    res.json({
-      blockchain: isConnected ? "Connected" : "Not Connected",
-      provider: process.env.WEB3_PROVIDER_URI,
-      contract: process.env.CONTRACT_ADDRESS || "Not deployed",
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: "Blockchain test failed",
-      details: error.message,
-    });
-  }
-});
+// app.get("/api/test-blockchain", async (req, res) => {
+//   try {
+//     const isConnected = Web3Service.isConnected();
+//     res.json({
+//       blockchain: isConnected ? "Connected" : "Not Connected",
+//       provider: process.env.WEB3_PROVIDER_URI,
+//       contract: process.env.CONTRACT_ADDRESS || "Not deployed",
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       error: "Blockchain test failed",
+//       details: error.message,
+//     });
+//   }
+// });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
-  res.status(500).json({
-    message: "Internal server error",
-    error:
-      process.env.NODE_ENV === "development"
-        ? err.message
-        : "Something went wrong",
-  });
-});
+// app.use((err, req, res, next) => {
+//   console.error("Unhandled error:", err);
+//   res.status(500).json({
+//     message: "Internal server error",
+//     error:
+//       process.env.NODE_ENV === "development"
+//         ? err.message
+//         : "Something went wrong",
+//   });
+// });
 
 // 404 handler
-app.use("/home", (req, res) => {
-  res.status(404).json({
-    message: "Route not found",
-    path: req.originalUrl,
-    availableEndpoints: [
-      "/api/health",
-      "/api/test-db",
-      "/api/test-blockchain",
-      "/api/user/signin",
-      "/api/user/signup",
-      "/api/requests/all",
-      "/api/stocks/all",
-      "/api/blockchain/all",
-    ],
-  });
-});
+// app.use("/home", (req, res) => {
+//   res.status(404).json({
+//     message: "Route not found",
+//     path: req.originalUrl,
+//     availableEndpoints: [
+//       "/api/health",
+//       "/api/test-db",
+//       "/api/test-blockchain",
+//       "/api/user/signin",
+//       "/api/user/signup",
+//       "/api/requests/all",
+//       "/api/stocks/all",
+//       "/api/blockchain/all",
+//     ],
+//   });
+// });
 
 // Initialize application
 async function initializeApp() {
@@ -771,14 +771,14 @@ async function initializeApp() {
     console.log("Initializing CBU Central Stores Application...\n");
 
     // 1. Connect to database
-    console.log("Connecting to database...");
-    await sequelize.authenticate();
-    console.log("Database connection established");
+    // console.log("Connecting to database...");
+    // await sequelize.authenticate();
+    // console.log("Database connection established");
 
     // 2. Sync database models
-    console.log("Synchronizing database models...");
-    await sequelize.sync({ alter: true });
-    console.log("Database models synchronized");
+    // console.log("Synchronizing database models...");
+    // await sequelize.sync({ alter: true });
+    // console.log("Database models synchronized");
 
     // 3. Test blockchain connection
     console.log("Testing blockchain connection...");
