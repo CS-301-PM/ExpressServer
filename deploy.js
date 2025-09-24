@@ -74,7 +74,7 @@ function updateEnvFile(contractAddress, deployerAddress) {
   newLines.push(`DEPLOYER_PRIVATE_KEY=${process.env.DEPLOYER_PRIVATE_KEY}`);
 
   fs.writeFileSync(envPath, newLines.join('\n'));
-  console.log('✅ .env updated with deployment info');
+  console.log('.env updated with deployment info');
 }
 
 // Run deployment

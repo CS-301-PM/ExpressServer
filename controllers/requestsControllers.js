@@ -34,8 +34,10 @@ const MakeRequest = async (req, res) => {
     // Create blockchain transaction
     const user = await User.findByPk(user_id);
     if (user && user.blockchain_address) {
-      const privateKey = Web3Service.decryptPrivateKey(user.encrypted_private_key);
-      
+      const privateKey = Web3Service.decryptPrivateKey(
+        user.encrypted_private_key
+      );
+
       if (privateKey) {
         const blockchainResult = await Web3Service.createRequestOnChain(
           item_name,
@@ -65,10 +67,10 @@ const MakeRequest = async (req, res) => {
       }
     }
 
-    res.status(201).json({ 
-      message: "Request created successfully", 
+    res.status(201).json({
+      message: "Request created successfully",
       request,
-      blockchain_success: !!blockchainResult?.success
+      blockchain_success: !!blockchainResult?.success,
     });
   } catch (error) {
     console.error(error);
@@ -92,13 +94,17 @@ const EditRequest = async (req, res) => {
 
     // Get approver user
     const approver = await User.findByPk(req.user.id);
-    
+
     // Blockchain approval transaction
-    if (approver && approver.blockchain_address && 
-        (status === "APPROVED" || status === "REJECTED")) {
-      
-      const privateKey = Web3Service.decryptPrivateKey(approver.encrypted_private_key);
-      
+    if (
+      approver &&
+      approver.blockchain_address &&
+      (status === "APPROVED" || status === "REJECTED")
+    ) {
+      const privateKey = Web3Service.decryptPrivateKey(
+        approver.encrypted_private_key
+      );
+
       if (privateKey) {
         const blockchainResult = await Web3Service.approveRequestOnChain(
           request.id,
@@ -125,7 +131,8 @@ const EditRequest = async (req, res) => {
           });
 
           return res.status(200).json({
-            message: "Request status updated and blockchain transaction recorded",
+            message:
+              "Request status updated and blockchain transaction recorded",
             request: {
               id: request.id,
               user_id: request.user_id,
@@ -171,7 +178,6 @@ const EditRequest = async (req, res) => {
         updated_at: request.updated_at,
       },
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error in EditRequest" });

@@ -1,18 +1,15 @@
 {
   "name": "express",
   "version": "1.0.0",
-  "description": "CBU Central Stores with Blockchain",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@truffle/hdwallet-provider": "^2.1.15",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -20,13 +17,6 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.15.0",
-    "sequelize": "^6.37.7",
-    "uuid": "^9.0.1",
-    "web3": "^4.16.0"
-  },
-  "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
-    "hardhat": "^2.26.3",
-    "nodemon": "^3.0.2"
+    "sequelize": "^6.37.7"
   }
 }
