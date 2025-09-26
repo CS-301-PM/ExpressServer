@@ -73,12 +73,15 @@ const GetSingleStock = async (req, res) => {
 const EditStock = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const updates = { ...req.body };
+
+    // Optionally remove created_at to avoid overriding
+    delete updates.created_at;
 
     const stock = await Stock.findByPk(id);
     if (!stock) return res.status(404).json({ error: "Stock not found" });
 
-    // If curr_location changes, update prev_location automatically
+    // Handle location changes
     if (
       updates.curr_location &&
       updates.curr_location !== stock.curr_location
@@ -86,6 +89,8 @@ const EditStock = async (req, res) => {
       updates.prev_location = stock.curr_location;
       stock.location_reason = updates.location_reason || stock.location_reason;
     }
+
+    updates.updated_at = new Date();
 
     await stock.update(updates);
 

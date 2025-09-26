@@ -1,24 +1,56 @@
 const Department = require("../models/departments");
 
-// ✅ Get all departments
-async function getAllDepartments() {
-  return await Department.findAll();
+// GET /departments
+async function getAllDepartments(req, res) {
+  try {
+    const departments = await Department.findAll();
+    res.status(200).json(departments);
+  } catch (error) {
+    console.error("Error fetching departments:", error);
+    res.status(500).json({ message: "Failed to fetch departments" });
+  }
 }
 
-// ✅ Add a new department
-async function addDepartment(name) {
-  return await Department.create({ name });
+// POST /departments
+async function addDepartment(req, res) {
+  try {
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Department name is required" });
+    }
+
+    const newDept = await Department.create({ name });
+    res.status(201).json(newDept);
+  } catch (error) {
+    console.error("Error adding department:", error);
+    res.status(500).json({ message: "Failed to add department" });
+  }
 }
 
-// ✅ Edit department by id
-async function editDepartment(id, name) {
-  const dept = await Department.findByPk(id);
-  if (!dept) throw new Error("Department not found");
+// PUT /departments/:id
+async function editDepartment(req, res) {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
 
-  dept.name = name;
-  await dept.save();
+    if (!name) {
+      return res.status(400).json({ message: "Department name is required" });
+    }
 
-  return dept;
+    const dept = await Department.findByPk(id);
+    if (!dept) {
+      return res.status(404).json({ message: "Department not found" });
+    }
+
+    dept.name = name;
+    await dept.save();
+
+    res.status(200).json(dept);
+  } catch (error) {
+    console.error("Error editing department:", error);
+    res.status(500).json({ message: "Failed to edit department" });
+  }
 }
 
 module.exports = {
