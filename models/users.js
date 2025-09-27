@@ -89,23 +89,9 @@ User.beforeCreate(async (user) => {
 });
 
 User.beforeUpdate(async (user) => {
-  // Assign role on blockchain when user role changes
-  if (user.changed("role") && user.blockchain_address) {
-    try {
-      const privateKey = Web3Service.decryptPrivateKey(
-        user.encrypted_private_key
-      );
-      if (privateKey) {
-        await Web3Service.assignRoleOnChain(
-          user.blockchain_address,
-          user.role,
-          true,
-          process.env.DEPLOYER_PRIVATE_KEY
-        );
-      }
-    } catch (error) {
-      console.error("Failed to assign role on blockchain:", error);
-    }
+  // Role syncing is not implemented on-chain; keeping database-only role updates.
+  if (user.changed("role")) {
+    // Optionally, you could emit an application-level event here.
   }
 });
 

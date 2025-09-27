@@ -8,7 +8,6 @@ const preReq = "/api/stocks";
 router.post(`${preReq}/add`, StockControllers.AddStock);
 router.get(`${preReq}/all`, StockControllers.GetAllStocks);
 router.get(`${preReq}/available`, StockControllers.GetAllStocksAvailable);
-router.get(`${preReq}/:id`, StockControllers.GetSingleStock);
 router.put(`${preReq}/edit/:id`, StockControllers.EditStock);
 router.delete(`${preReq}/delete/:id`, StockControllers.DeleteStock);
 

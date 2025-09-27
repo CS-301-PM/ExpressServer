@@ -1,24 +1,25 @@
+// controllers/UserControllers.js
+
+require("dotenv").config();
 const User = require("../models/users");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const Web3Service = require("../blockchain/Web3Service");
 
-// Middleware to extract user from JWT token
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
+  const token = authHeader && authHeader.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Token missing" });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secretkey");
-    req.user = decoded; // contains id and role
+    req.user = decoded; // { id, role }
     next();
   } catch (error) {
     return res.status(403).json({ error: "Invalid or expired token" });
   }
 };
 
-// SignUp
 const SignUp = async (req, res) => {
   try {
     const {
@@ -43,6 +44,7 @@ const SignUp = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const account = await Web3Service.generateBlockchainAccount();
     const encryptedPrivateKey = Web3Service.encryptPrivateKey(
       account.privateKey
@@ -60,19 +62,34 @@ const SignUp = async (req, res) => {
       encrypted_private_key: encryptedPrivateKey,
     });
 
+    // On-chain log: USER_SIGNUP
+    try {
+      const logPayload = {
+        userId: user.id,
+        username,
+        firstName: first_name,
+        lastName: last_name,
+        role: user.role,
+        department: user.department,
+        address: user.blockchain_address,
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode(
+        "USER_SIGNUP",
+        JSON.stringify(logPayload)
+      );
+    } catch (_) {}
+
     res.status(201).json({
       message: "User registered successfully",
       user: {
         id: user.id,
-        username: user.username,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        role: user.role,
-        department: user.department,
-        blockchain_address: user.blockchain_address,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
+        username,
+        first_name,
+        last_name,
+        role,
+        department,
+        blockchain_address: account.address,
       },
     });
   } catch (error) {
@@ -81,16 +98,9 @@ const SignUp = async (req, res) => {
   }
 };
 
-// SignIn
 const SignIn = async (req, res) => {
   try {
     const { username, password } = req.body;
-
-    if (!username || !password)
-      return res
-        .status(400)
-        .json({ error: "Username and password are required" });
-
     const user = await User.findOne({ where: { username } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -103,31 +113,44 @@ const SignIn = async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    res.status(200).json({
-      message: "Signed in successfully",
-      token,
-      user: {
-        id: user.id,
+    // On-chain log: USER_SIGNIN
+    try {
+      const logPayload = {
+        userId: user.id,
         username: user.username,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
         role: user.role,
-        department: user.department,
-        blockchain_address: user.blockchain_address,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-      },
-    });
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode(
+        "USER_SIGNIN",
+        JSON.stringify(logPayload)
+      );
+    } catch (_) {}
+
+    res.status(200).json({ message: "Signed in successfully", token, user });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error in SignIn" });
   }
 };
 
-// SignOut
 const SignOut = async (req, res) => {
   try {
+    const user = await User.findByPk(req.user.id);
+
+    // On-chain log: USER_SIGNOUT
+    try {
+      const logPayload = {
+        userId: user?.id || req.user.id,
+        username: user?.username || null,
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode(
+        "USER_SIGNOUT",
+        JSON.stringify(logPayload)
+      );
+    } catch (_) {}
+
     res.status(200).json({ message: "User signed out successfully" });
   } catch (error) {
     console.error(error);
@@ -135,57 +158,49 @@ const SignOut = async (req, res) => {
   }
 };
 
-// Check if Signed (requires Bearer token)
 const Signed = async (req, res) => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1]; // Expect: "Bearer <token>"
-
-    if (!token) {
-      return res.status(401).json({ error: "Token missing" });
-    }
-
-    // Verify token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || "secretkey");
-    } catch (err) {
-      return res.status(403).json({ error: "Invalid or expired token" });
-    }
-
-    // Find user by ID from decoded token
-    const user = await User.findByPk(decoded.id);
+    const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Return user info (without password)
-    res.status(200).json({
-      message: "User is signed in",
-      user: {
-        id: user.id,
+    // On-chain log: USER_SESSION_VALID
+    try {
+      const logPayload = {
+        userId: user.id,
         username: user.username,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        role: user.role,
-        department: user.department,
-        blockchain_address: user.blockchain_address,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-      },
-    });
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode(
+        "USER_SESSION_VALID",
+        JSON.stringify(logPayload)
+      );
+    } catch (_) {}
+
+    res.status(200).json({ message: "User is signed in", user });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error in Signed" });
   }
 };
 
-// Delete User
 const Delete = async (req, res) => {
   try {
-    const { id } = req.body;
+    const { id } = req.params;
     const user = await User.findByPk(id);
     if (!user) return res.status(404).json({ error: "User not found" });
+
+    // On-chain log: USER_DELETED
+    try {
+      const logPayload = {
+        userId: user.id,
+        username: user.username,
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode(
+        "USER_DELETED",
+        JSON.stringify(logPayload)
+      );
+    } catch (_) {}
 
     await user.destroy();
     res.status(200).json({ message: "User deleted successfully" });
@@ -195,12 +210,19 @@ const Delete = async (req, res) => {
   }
 };
 
-// Edit User
 const Edit = async (req, res) => {
   try {
     const { id, first_name, last_name, email, role, department } = req.body;
     const user = await User.findByPk(id);
     if (!user) return res.status(404).json({ error: "User not found" });
+
+    const before = {
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+    };
 
     await user.update({
       first_name: first_name || user.first_name,
@@ -210,32 +232,44 @@ const Edit = async (req, res) => {
       department: department || user.department,
     });
 
-    res.status(200).json({
-      message: "User updated successfully",
-      user: {
-        id: user.id,
-        username: user.username,
+    // On-chain log: USER_UPDATED
+    try {
+      const after = {
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
         role: user.role,
         department: user.department,
-        blockchain_address: user.blockchain_address,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-      },
-    });
+      };
+      const changed = {};
+      for (const k of Object.keys(after)) {
+        if (after[k] !== before[k])
+          changed[k] = { before: before[k], after: after[k] };
+      }
+      const logPayload = {
+        userId: user.id,
+        changed,
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode(
+        "USER_UPDATED",
+        JSON.stringify(logPayload)
+      );
+    } catch (_) {}
+
+    res.status(200).json({ message: "User updated successfully", user });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error in Edit" });
   }
 };
-// controllers/UserControllers.js
 
-// Get all users
 const GetAllUsers = async (req, res) => {
   try {
-    const users = await User.getAllUsers();
+    const users = await User.findAll();
+
+    // On-chain logging skipped.
+
     res.status(200).json({ users });
   } catch (error) {
     console.error(error);
@@ -243,20 +277,54 @@ const GetAllUsers = async (req, res) => {
   }
 };
 
-// Edit a specific user by ID
 const EditSpecificUser = async (req, res) => {
   try {
-    const { id } = req.params; // user ID from route parameter
+    const { id } = req.params;
     const updates = req.body;
-    console.log(id);
 
-    const user = await User.editById(id, updates);
+    const user = await User.findByPk(id);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    res.status(200).json({
-      message: "User updated successfully",
-      user,
-    });
+    const before = {
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+    };
+
+    await user.update(updates);
+
+    // On-chain log: USER_UPDATED
+    try {
+      const after = {
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+      };
+      const changed = {};
+      for (const k of Object.keys(after)) {
+        if (
+          Object.prototype.hasOwnProperty.call(updates, k) &&
+          after[k] !== before[k]
+        ) {
+          changed[k] = { before: before[k], after: after[k] };
+        }
+      }
+      const logPayload = {
+        userId: user.id,
+        changed,
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode(
+        "USER_UPDATED",
+        JSON.stringify(logPayload)
+      );
+    } catch (_) {}
+
+    res.status(200).json({ message: "User updated successfully", user });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error in EditSpecificUser" });

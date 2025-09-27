@@ -3,17 +3,16 @@ const router = Router();
 const BlockchainControllers = require("../controllers/blockchainControllers");
 const UserControllers = require("../controllers/usersControllers");
 
-router.get("/api/blockchain/all", BlockchainControllers.GetAllBlocks); //audits
-router.get("/api/blockchain/status", BlockchainControllers.GetBlockchainStatus); //optional
+router.get("/api/blockchain/status", BlockchainControllers.GetBlockchainStatus); // optional
 router.get(
   "/api/blockchain/user-info",
   UserControllers.authenticateToken,
   BlockchainControllers.GetUserBlockchainInfo
-); //optional
-
-//
-router.get("/api/blockchain/accounts", BlockchainControllers.GetAccounts); //audits
-router.get("/api/blockchain/balances", BlockchainControllers.GetBalances); //audits
-router.get("/api/blockchain/info", BlockchainControllers.GetNetworkInfo); //audits
+);
+router.get("/api/blockchain/accounts", BlockchainControllers.GetAccounts);
+router.get("/api/blockchain/balances", BlockchainControllers.GetBalances);
+router.get("/api/blockchain/info", BlockchainControllers.GetNetworkInfo);
+router.get("/api/blockchain/logs", BlockchainControllers.GetContractLogs);
+router.get("/api/logger/entries", BlockchainControllers.LoggerGetAllEntries);
 
 module.exports = router;

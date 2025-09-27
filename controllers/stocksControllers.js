@@ -1,5 +1,5 @@
-// Controllers/StockControllers.js
 const Stock = require("../models/stocks");
+const Web3Service = require("../blockchain/Web3Service");
 
 // Add new stock
 const AddStock = async (req, res) => {
@@ -33,6 +33,23 @@ const AddStock = async (req, res) => {
       available: available !== undefined ? available : true,
       category: category || null,
     });
+
+    // Propose on-chain log for stock creation
+    try {
+      const logPayload = {
+        stockId: stock.id,
+        itemName: stock.item_name,
+        originalQuantity: stock.original_quantity,
+        currentQuantity: stock.current_quantity,
+        costEach: stock.cost_each,
+        currLocation: stock.curr_location,
+        prevLocation: stock.prev_location,
+        available: stock.available,
+        category: stock.category,
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode("STOCK_ADDED", JSON.stringify(logPayload));
+    } catch (_) {}
 
     res.status(201).json({
       message: "Stock added successfully",
@@ -69,20 +86,6 @@ const GetAllStocksAvailable = async (req, res) => {
   }
 };
 
-// Get single stock
-const GetSingleStock = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const stock = await Stock.findByPk(id);
-    if (!stock) return res.status(404).json({ error: "Stock not found" });
-
-    res.status(200).json({ stock });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error in GetSingleStock" });
-  }
-};
-
 // Edit stock (only update status fields and location changes)
 const EditStock = async (req, res) => {
   try {
@@ -108,6 +111,21 @@ const EditStock = async (req, res) => {
 
     await stock.update(updates);
 
+    // Propose on-chain log for stock update
+    try {
+      const changed = {};
+      for (const k of Object.keys(updates)) {
+        if (["created_at", "updated_at"].includes(k)) continue;
+        changed[k] = updates[k];
+      }
+      const logPayload = {
+        stockId: stock.id,
+        changed,
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode("STOCK_UPDATED", JSON.stringify(logPayload));
+    } catch (_) {}
+
     res.status(200).json({
       message: "Stock updated successfully",
       stock,
@@ -127,6 +145,16 @@ const DeleteStock = async (req, res) => {
 
     await stock.destroy();
 
+    // Propose on-chain log for stock deletion
+    try {
+      const logPayload = {
+        stockId: stock.id,
+        itemName: stock.item_name,
+        timestamp: new Date().toISOString(),
+      };
+      await Web3Service.loggerProposeAsNode("STOCK_DELETED", JSON.stringify(logPayload));
+    } catch (_) {}
+
     res.status(200).json({
       message: "Stock deleted successfully",
       stock,
@@ -137,11 +165,11 @@ const DeleteStock = async (req, res) => {
   }
 };
 
+
 module.exports = {
   AddStock,
   GetAllStocks,
   GetAllStocksAvailable,
-  GetSingleStock,
   EditStock,
   DeleteStock,
 };

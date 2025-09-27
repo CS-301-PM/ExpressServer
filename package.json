@@ -10,7 +10,10 @@
     "compile": "hardhat compile",
     "deploy:node1": "hardhat run --network node1 scripts/deploy-hardhat.js",
     "deploy:node2": "hardhat run --network node2 scripts/deploy-hardhat.js",
-    "deploy:node3": "hardhat run --network node3 scripts/deploy-hardhat.js"
+    "deploy:node3": "hardhat run --network node3 scripts/deploy-hardhat.js",
+    "deploy-web3:node1": "node scripts/deploy-web3.js node1",
+    "deploy-web3:node2": "node scripts/deploy-web3.js node2",
+    "deploy-web3:node3": "node scripts/deploy-web3.js node3"
   },
   "keywords": [],
   "author": "",
@@ -30,7 +33,9 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "fp-ts": "^2.16.11",
     "hardhat": "^2.26.3",
+    "io-ts": "^2.2.22",
     "nodemon": "^3.0.2"
   }
 }
