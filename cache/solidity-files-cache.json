@@ -1,0 +1,113 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "D:\\FINAL-PROJECT\\ExpressServer\\contracts\\RequestManager.sol": {
+      "lastModificationDate": 1758979341110,
+      "contentHash": "c4d552d501bfac538ccf291a4b174215",
+      "sourceName": "contracts/RequestManager.sol",
+      "solcConfig": {
+        "version": "0.8.21",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "RequestManager"
+      ]
+    },
+    "D:\\FINAL-PROJECT\\ExpressServer\\contracts\\StockManager.sol": {
+      "lastModificationDate": 1758979356968,
+      "contentHash": "d1bfb3fdd433bd9fc5c1a8f8e9b8037d",
+      "sourceName": "contracts/StockManager.sol",
+      "solcConfig": {
+        "version": "0.8.21",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "StockManager"
+      ]
+    },
+    "D:\\FINAL-PROJECT\\ExpressServer\\contracts\\UserManager.sol": {
+      "lastModificationDate": 1758979371319,
+      "contentHash": "4469d6128669450997dc6b322c9a4545",
+      "sourceName": "contracts/UserManager.sol",
+      "solcConfig": {
+        "version": "0.8.21",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "UserManager"
+      ]
+    }
+  }
+}

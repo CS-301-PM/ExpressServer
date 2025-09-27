@@ -11,4 +11,9 @@ router.get(
   BlockchainControllers.GetUserBlockchainInfo
 ); //optional
 
+//
+router.get("/api/blockchain/accounts", BlockchainControllers.GetAccounts); //audits
+router.get("/api/blockchain/balances", BlockchainControllers.GetBalances); //audits
+router.get("/api/blockchain/info", BlockchainControllers.GetNetworkInfo); //audits
+
 module.exports = router;

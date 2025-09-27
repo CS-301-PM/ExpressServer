@@ -1,0 +1,9 @@
+[dotenv@17.2.2] injecting env (24) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[dotenv@17.2.2] injecting env (0) from .env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+Initializing CBU Central Stores Application...
+
+Testing blockchain connection...
+Start Ganache: ganache-cli -d
+Executing (default): SELECT 1+1 AS result
+Database connected succefully

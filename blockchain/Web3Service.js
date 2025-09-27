@@ -1,22 +1,98 @@
+require("dotenv").config();
 const { Web3 } = require("web3");
 const crypto = require("crypto");
 
 class Web3Service {
   constructor() {
-    this.providerUrl = process.env.WEB3_PROVIDER_URI || "http://127.0.0.1:8545";
+    const providerCandidates = [
+      process.env.WEB3_PROVIDER_URI,
+      "http://127.0.0.1:8501",
+      "http://127.0.0.1:8502",
+      "http://127.0.0.1:8503",
+      "http://127.0.0.1:8545",
+    ].filter(Boolean);
+    this.providerUrl = providerCandidates[0];
 
     this.web3 = new Web3(this.providerUrl);
 
+    // Connectivity cache (updated asynchronously)
+    this.connected = false;
+    (async () => {
+      for (const url of providerCandidates) {
+        try {
+          const probe = new Web3(url);
+          await probe.eth.getChainId();
+          this.web3 = probe;
+          this.providerUrl = url;
+          this.connected = true;
+          break;
+        } catch (_) {
+          // try next candidate
+        }
+      }
+    })();
+
+    // Contract addresses from env (multi-contract support)
+    this.userManagerAddress =
+      process.env.USER_MANAGER_ADDRESS || process.env.CONTRACT_ADDRESS_USER;
+    this.stockManagerAddress =
+      process.env.STOCK_MANAGER_ADDRESS || process.env.CONTRACT_ADDRESS_STOCK;
+    this.requestManagerAddress =
+      process.env.REQUEST_MANAGER_ADDRESS ||
+      process.env.CONTRACT_ADDRESS_REQUEST;
+
+    // Attempt to load Hardhat artifacts (fallback to inline ABI if unavailable)
+    try {
+      this.userManagerAbi =
+        require("../artifacts/contracts/UserManager.sol/UserManager.json").abi;
+    } catch (_) {
+      this.userManagerAbi = null;
+    }
+    try {
+      this.stockManagerAbi =
+        require("../artifacts/contracts/StockManager.sol/StockManager.json").abi;
+    } catch (_) {
+      this.stockManagerAbi = null;
+    }
+    try {
+      this.requestManagerAbi =
+        require("../artifacts/contracts/RequestManager.sol/RequestManager.json").abi;
+    } catch (_) {
+      this.requestManagerAbi = null;
+    }
+
+    // Back-compat single-contract fields
     this.contractAddress = process.env.CONTRACT_ADDRESS;
     this.contract = null;
     this.abi = this.getContractABI();
 
-    if (this.contractAddress) {
-      this.contract = new this.web3.eth.Contract(
-        this.abi,
-        this.contractAddress
-      );
-    }
+    // Initialize specific contracts if ABI + address available
+    try {
+      if (this.userManagerAbi && this.userManagerAddress) {
+        this.userManager = new this.web3.eth.Contract(
+          this.userManagerAbi,
+          this.userManagerAddress
+        );
+      }
+      if (this.stockManagerAbi && this.stockManagerAddress) {
+        this.stockManager = new this.web3.eth.Contract(
+          this.stockManagerAbi,
+          this.stockManagerAddress
+        );
+      }
+      if (this.requestManagerAbi && this.requestManagerAddress) {
+        this.requestManager = new this.web3.eth.Contract(
+          this.requestManagerAbi,
+          this.requestManagerAddress
+        );
+        // For backward compatibility, default generic contract to RequestManager
+        if (!this.contract && !this.contractAddress) {
+          this.contract = this.requestManager;
+          this.contractAddress = this.requestManagerAddress;
+          this.abi = this.requestManagerAbi;
+        }
+      }
+    } catch (_) {}
   }
 
   getContractABI() {
@@ -132,12 +208,8 @@ class Web3Service {
     ];
   }
 
-  async isConnected() {
-    try {
-      return await this.web3.eth.net.isListening();
-    } catch {
-      return false;
-    }
+  isConnected() {
+    return !!this.connected;
   }
 
   async generateBlockchainAccount() {
@@ -218,44 +290,63 @@ class Web3Service {
   async createRequestOnChain(
     itemName,
     quantity,
-    priority,
-    reason,
+    _priority,
+    _reason,
     userAddress,
     privateKey
   ) {
-    if (!this.contract) return { success: false, error: "Contract not loaded" };
+    const target = this.requestManager || this.contract;
+    if (!target)
+      return { success: false, error: "RequestManager not configured" };
+    // Contract expects (string item, uint256 quantity)
     return this.sendTransaction(
-      this.contract.methods.createRequest,
+      target.methods.createRequest,
       userAddress,
       privateKey,
-      [itemName, quantity.toString(), priority, reason]
+      [itemName, quantity.toString()]
     );
   }
 
   async approveRequestOnChain(
     requestId,
-    approved,
-    reason,
+    newStatus,
+    _reason,
     approverAddress,
     privateKey
   ) {
-    if (!this.contract) return { success: false, error: "Contract not loaded" };
+    const target = this.requestManager || this.contract;
+    if (!target)
+      return { success: false, error: "RequestManager not configured" };
+    // Map input to enum Status { PENDING(0), APPROVED(1), REJECTED(2), IN_PROGRESS(3), FULFILLED(4) }
+    const mapStatus = (val) => {
+      if (typeof val === "boolean") return val ? 1 : 2;
+      if (typeof val === "string") {
+        const t = val.toUpperCase();
+        if (t === "PENDING") return 0;
+        if (t === "APPROVED") return 1;
+        if (t === "REJECTED") return 2;
+        if (t === "IN_PROGRESS") return 3;
+        if (t === "FULFILLED") return 4;
+      }
+      const n = Number(val);
+      if (!Number.isNaN(n) && n >= 0 && n <= 4) return n;
+      return 0; // default to PENDING
+    };
+    const statusCode = mapStatus(newStatus);
     return this.sendTransaction(
-      this.contract.methods.approveRequest,
+      target.methods.approveRequest,
       approverAddress,
       privateKey,
-      [requestId.toString(), approved, reason]
+      [requestId.toString(), statusCode]
     );
   }
 
-  async assignRoleOnChain(userAddress, role, status, adminPrivateKey) {
-    if (!this.contract) return { success: false, error: "Contract not loaded" };
-    return this.sendTransaction(
-      this.contract.methods.assignRole,
-      process.env.DEPLOYER_ACCOUNT_ADDRESS,
-      adminPrivateKey,
-      [userAddress, role, status]
-    );
+  async assignRoleOnChain(_userAddress, _role, _status, _adminPrivateKey) {
+    // Not implemented in current UserManager.sol
+    return {
+      success: false,
+      error: "assignRoleOnChain not supported by UserManager.sol",
+    };
   }
 
   async subscribeToEvents() {
