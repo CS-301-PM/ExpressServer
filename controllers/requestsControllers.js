@@ -507,10 +507,40 @@ const DeleteRequest = async (req, res) => {
   }
 };
 
+// Get all requests and grouped by department & user
+const GetGroupedRequests = async (req, res) => {
+  try {
+    const requests = await Request.findAll({ raw: true }); // raw for plain objects
+
+    // Group by department and then by user_id
+    const grouped = requests.reduce((acc, request) => {
+      const dept = request.department || "Unknown";
+      const userId = request.user_id;
+
+      if (!acc[dept]) acc[dept] = {};
+      if (!acc[dept][userId]) acc[dept][userId] = [];
+
+      acc[dept][userId].push(request);
+
+      return acc;
+    }, {});
+
+    return res.status(200).json({
+      status: "success",
+      allRequests: requests,
+      groupedRequests: grouped,
+    });
+  } catch (error) {
+    console.error("Error in GetGroupedRequests:", error);
+    return res.status(500).json({ status: "error", error: error.message });
+  }
+};
+
 module.exports = {
   MakeRequest,
   ManageRequest,
   GetAllRequests,
+  GetGroupedRequests,
   GetSingleRequest,
   EditRequest,
   DeleteRequest,

@@ -55,6 +55,20 @@ const GetAllStocks = async (req, res) => {
   }
 };
 
+const GetAllStocksAvailable = async (req, res) => {
+  try {
+    const stocks = await Stock.findAll({
+      where: {
+        available: true,
+      },
+    });
+    res.status(200).json({ stocks });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error in GetAllStocksAvailable" });
+  }
+};
+
 // Get single stock
 const GetSingleStock = async (req, res) => {
   try {
@@ -126,6 +140,7 @@ const DeleteStock = async (req, res) => {
 module.exports = {
   AddStock,
   GetAllStocks,
+  GetAllStocksAvailable,
   GetSingleStock,
   EditStock,
   DeleteStock,
