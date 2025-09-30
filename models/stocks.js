@@ -36,18 +36,18 @@ const Stock = sequelize.define(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
-    location_reason: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    // location_reason: {
+    //   type: DataTypes.TEXT,
+    //   allowNull: true,
+    // },
     available: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
-    category: {
-      type: DataTypes.STRING(50),
-      allowNull: true,
-    },
+    // category: {
+    //   type: DataTypes.STRING(50),
+    //   allowNull: true,
+    // },
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

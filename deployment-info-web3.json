@@ -1,0 +1,16 @@
+{
+  "contractName": "GenericLoggerPeerApproved",
+  "contractAddress": "0x5E20aBB36b184E72A0c04c367B2D52c65FC170Cf",
+  "deployer": "0xddb0a67181F038739C67E92093c84Bb7C555C1D8",
+  "peers": [
+    "0xddb0a67181F038739C67E92093c84Bb7C555C1D8",
+    "0x0B248951266FC027F4DC6386288acB3B094d947E",
+    "0x212C5b941eDC69311F3aBE801C25a2E8981F84fF"
+  ],
+  "network": {
+    "chainId": "12345",
+    "networkId": "12345",
+    "rpcUrl": "http://127.0.0.1:8501"
+  },
+  "deployedAt": "2025-09-27T19:17:16.721Z"
+}

@@ -33,12 +33,12 @@ const User = sequelize.define(
     email: {
       type: DataTypes.STRING(100),
       allowNull: true,
-      unique: true,
+      // unique: true,
     },
     username: {
       type: DataTypes.STRING(50),
       allowNull: true,
-      unique: true,
+      // unique: true,
     },
     department: {
       type: DataTypes.STRING(100),
@@ -79,29 +79,19 @@ User.beforeCreate(async (user) => {
     try {
       const account = await Web3Service.generateBlockchainAccount();
       user.blockchain_address = account.address;
-      user.encrypted_private_key = Web3Service.encryptPrivateKey(account.privateKey);
+      user.encrypted_private_key = Web3Service.encryptPrivateKey(
+        account.privateKey
+      );
     } catch (error) {
-      console.error('Failed to generate blockchain account:', error);
+      console.error("Failed to generate blockchain account:", error);
     }
   }
 });
 
 User.beforeUpdate(async (user) => {
-  // Assign role on blockchain when user role changes
-  if (user.changed('role') && user.blockchain_address) {
-    try {
-      const privateKey = Web3Service.decryptPrivateKey(user.encrypted_private_key);
-      if (privateKey) {
-        await Web3Service.assignRoleOnChain(
-          user.blockchain_address,
-          user.role,
-          true,
-          process.env.DEPLOYER_PRIVATE_KEY
-        );
-      }
-    } catch (error) {
-      console.error('Failed to assign role on blockchain:', error);
-    }
+  // Role syncing is not implemented on-chain; keeping database-only role updates.
+  if (user.changed("role")) {
+    // Optionally, you could emit an application-level event here.
   }
 });
 
@@ -120,7 +110,7 @@ User.editById = async function (id, updates) {
     "username",
     "department",
     "blockchain_address",
-    "encrypted_private_key"
+    "encrypted_private_key",
   ];
 
   allowedUpdates.forEach((field) => {
@@ -130,7 +120,9 @@ User.editById = async function (id, updates) {
   user.updated_at = new Date();
   await user.save();
 
-  const { password_hash, encrypted_private_key, ...rest } = user.get({ plain: true });
+  const { password_hash, encrypted_private_key, ...rest } = user.get({
+    plain: true,
+  });
   return rest;
 };
 
@@ -146,7 +138,7 @@ User.getAllUsers = async function () {
 User.getWithBlockchainCredentials = async function (id) {
   const user = await User.findByPk(id);
   if (!user) return null;
-  
+
   return user;
 };
 
